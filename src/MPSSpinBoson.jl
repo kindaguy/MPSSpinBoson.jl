@@ -1,5 +1,6 @@
 module MPSSpinBoson
 
-# Write your package code here.
+export test_exsistence
+include("functions.jl")
 
 end
