@@ -40,16 +40,36 @@ function createMPO(sysenv, eps::Float64, delta::Float64, intHsysSide::String, fr
    NN::Int64  = size(sysenv)[1];
    NChain::Int64 = NN-1;
    
+
+   #Check if the interaction operator on system side is one of the
+   #spin operators.
+   #ATTENTION:    
+   #!Sx = 0.5 σx
+   twoFact = any(map(x->intHsysSide==x,["Sx","Sy","Sz"]))
+
+   #in this case, whenever we need to use σ_i we need to multiply
+   #by 2.
+
+   #to test
+   if intHsysSide == "S+"
+      intHsysSideDag = "S-"
+   elseif intHsysSide == "S-"
+      intHsysSideDag = "S+"
+   else
+      intHsysSideDag = intHsysSide
+   end
+
+
+   
    thempo = OpSum();
    #system Hamiltonian
    #pay attention to constant S_x/y/z = 0.5 σ_x/y/z
    thempo += 2*eps,"Sz",1;
    thempo += 2*delta,"Sx",1
    #system-env interaction
-   #ATTENTION:
-   #!Sx = 0.5 σx
-   thempo += 2*coups[1],"Sx",1,"Adag",2;
-   thempo += 2*coups[1],"Sx",1,"A",2;
+   
+   thempo += (twoFact ? 2 : 1)*coups[1],intHsysSide,1,"Adag",2;
+   thempo += (twoFact ? 2 : 1)*coups[1],intHsysSideDag,1,"A",2;
    #chain local Hamiltonians
    for j=2:NChain
       thempo += freqs[j-1],"N",j;
