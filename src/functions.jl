@@ -1,9 +1,4 @@
 
-using ITensors
-using JSON
-using DelimitedFiles
-
-
 function load_pars(file_name::String)
    input = open(file_name)
    s = read(input, String)
@@ -13,11 +8,18 @@ function load_pars(file_name::String)
 end
 
 function defineSystem(;sys_type::String="S=1/2",sys_istate::String="Up",chain_size::Int64=250,local_dim::Int64=6)
+   
    sys = siteinds(sys_type,1);
    env = siteinds("Boson",dim = local_dim, chain_size);
    sysenv = vcat(sys,env);
+
+   isTrans = sys_istate == "i"
    
-   stateSys = [sys_istate];
+   #Temporary fix for initial state +1 of σ_y
+   #If sys_istate == "i", then initialize to "Up"...we will then apply 1/√2 (1+2 Sy) to 
+   #get the initial state.
+
+   stateSys = [(isTrans ? "Up" : sys_istate)];
 
    #Standard approach: chain always in the vacuum state
    stateEnv = ["0" for n=1:chain_size];
@@ -25,6 +27,14 @@ function defineSystem(;sys_type::String="S=1/2",sys_istate::String="Up",chain_si
    stateSE = vcat(stateSys,stateEnv);
 
    psi0 = productMPS(sysenv,stateSE);
+
+   #In case Initial State is "i"
+   if isTrans
+      sy = 2*op("Sy",sysenv[1])
+      si = op("Id",sysenv[1])
+      rot = 1/sqrt(2)*(si+sy)
+      psi0 = apply(rot,psi0)
+   end
    
    return (sysenv,psi0);
 end
@@ -33,7 +43,7 @@ end
 #function setInital()
 function createMPO(sysenv, eps::Float64, delta::Float64, intHsysSide::String, freqfile::String, coupfile::String)::MPO
    
-   println(stdout,"system-bath interaction: " * intHsysSide * "⊗ (a+adag)")
+   
    coups = readdlm(coupfile);
    freqs = readdlm(freqfile);
 
@@ -59,7 +69,11 @@ function createMPO(sysenv, eps::Float64, delta::Float64, intHsysSide::String, fr
       intHsysSideDag = intHsysSide
    end
 
-
+   if twoFact
+      println("spin-boson interaction operator: ", intHsysSide," ⊗ (A+Adag)")
+   else
+      println("spin-boson interaction operator: ", intHsysSide," ⊗ A +",intHsysSideDag, "⊗ Adag")
+   end
    
    thempo = OpSum();
    #system Hamiltonian
