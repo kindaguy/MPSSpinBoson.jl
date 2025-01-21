@@ -98,7 +98,8 @@ end
 
 
 #For MC
-function createMPO(sysenv, eps::Float64, delta::Float64, freqfile::String, coupfile::String,
+#ATTENTION: we need to implement the 2 factor used in the  No-MC createMPO
+function createMPO(sysenv, eps::Float64, delta::Float64,intHsysSide::String, freqfile::String, coupfile::String,
    MC_alphafile::String,MC_betafile::String,MC_coupfile::String,omega::Float64; kwargs...)::MPO
 
    #perm:  permutation of the closure oscillators
@@ -120,6 +121,31 @@ function createMPO(sysenv, eps::Float64, delta::Float64, freqfile::String, coupf
    NN = length(sysenv);
    MC_N = length(gammas);
    NP_Chain = NN-MC_N;
+
+
+   #Check if the interaction operator on system side is one of the
+   #spin operators.
+   #ATTENTION:    
+   #!Sx = 0.5 σx
+   twoFact = any(map(x->intHsysSide==x,["Sx","Sy","Sz"]))
+
+   #in this case, whenever we need to use σ_i we need to multiply
+   #by 2.
+
+   #to test
+   if intHsysSide == "S+"
+      intHsysSideDag = "S-"
+   elseif intHsysSide == "S-"
+      intHsysSideDag = "S+"
+   else
+      intHsysSideDag = intHsysSide
+   end
+
+   if twoFact
+      println("spin-boson interaction operator: ", intHsysSide," ⊗ (A+Adag)")
+   else
+      println("spin-boson interaction operator: ", intHsysSide," ⊗ A +",intHsysSideDag, "⊗ Adag")
+   end
    
    if(perm != nothing)
       
@@ -143,8 +169,8 @@ function createMPO(sysenv, eps::Float64, delta::Float64, freqfile::String, coupf
    thempo += 2*delta,"Sx",1;
    #system-env interaction
    #!Sx = 0.5 σx
-   thempo += 2*coups[1],"Sx",1,"Adag",2
-   thempo += 2*coups[1],"Sx",1,"A",2
+   thempo += (twoFact ? 2 : 1)*coups[1],intHsysSide,1,"Adag",2
+   thempo += (twoFact ? 2 : 1)*coups[1],intHsysSideDag,1,"A",2
 
    #Primary chain local Hamiltonians
    for j=2:NP_Chain
@@ -178,7 +204,7 @@ function createMPO(sysenv, eps::Float64, delta::Float64, freqfile::String, coupf
 
    return MPO(thempo,sysenv);
 end
-function createMPO2MC(sysenv, eps::Float64, delta::Float64, freqfile::String, coupfile::String,
+function createMPO2MC(sysenv, eps::Float64, delta::Float64, intHsysSide::String, freqfile::String, coupfile::String,
    MC_alphafile::String,MC_betafile::String,MC_coupfile::String,omega::Float64; kwargs...)::MPO
 
    #perm:  permutation of the closure oscillators
@@ -202,6 +228,31 @@ function createMPO2MC(sysenv, eps::Float64, delta::Float64, freqfile::String, co
    MC_N = length(gammas);
    NP_Chain = NN - 2 * MC_N;
    
+   #Check if the interaction operator on system side is one of the
+   #spin operators.
+   #ATTENTION:    
+   #!Sx = 0.5 σx
+   twoFact = any(map(x->intHsysSide==x,["Sx","Sy","Sz"]))
+
+   #in this case, whenever we need to use σ_i we need to multiply
+   #by 2.
+
+   #to test
+   if intHsysSide == "S+"
+      intHsysSideDag = "S-"
+   elseif intHsysSide == "S-"
+      intHsysSideDag = "S+"
+   else
+      intHsysSideDag = intHsysSide
+   end
+
+   if twoFact
+      println("spin-boson interaction operator: ", intHsysSide," ⊗ (A+Adag)")
+   else
+      println("spin-boson interaction operator: ", intHsysSide," ⊗ A +",intHsysSideDag, "⊗ Adag")
+   end
+   
+
    if(perm != nothing)
       
       if(length(perm)!= MC_N)
@@ -224,8 +275,8 @@ function createMPO2MC(sysenv, eps::Float64, delta::Float64, freqfile::String, co
    thempo += 2*delta,"Sx",1;
    #system-env interaction
    #!Sx = 0.5 σx
-   thempo += 2*coups[1],"Sx",1,"Adag",2
-   thempo += 2*coups[1],"Sx",1,"A",2
+   thempo += (twoFact ? 2 : 1)*coups[1],intHsysSide,1,"Adag",2
+   thempo += (twoFact ? 2 : 1)*coups[1],intHsysSideDag,1,"A",2
 
    #Primary chain local Hamiltonians
    for j=2:NP_Chain
