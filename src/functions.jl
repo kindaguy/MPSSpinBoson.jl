@@ -13,28 +13,29 @@ function defineSystem(;sys_type::String="S=1/2",sys_istate::String="Up",chain_si
    env = siteinds("Boson",dim = local_dim, chain_size);
    sysenv = vcat(sys,env);
 
-   isTrans = sys_istate == "i"
+   #isTrans = sys_istate == "i"
    
    #Temporary fix for initial state +1 of σ_y
    #If sys_istate == "i", then initialize to "Up"...we will then apply 1/√2 (1+2 Sy) to 
    #get the initial state.
 
-   stateSys = [(isTrans ? "Up" : sys_istate)];
+   #stateSys = [(isTrans ? "Up" : sys_istate)];
+   stateSys = [sys_istate]
 
    #Standard approach: chain always in the vacuum state
    stateEnv = ["0" for n=1:chain_size];
 
    stateSE = vcat(stateSys,stateEnv);
 
-   psi0 = productMPS(sysenv,stateSE);
+   psi0 = productMPS(ComplexF64,sysenv,stateSE);
 
    #In case Initial State is "i"
-   if isTrans
-      sy = 2*op("Sy",sysenv[1])
-      si = op("Id",sysenv[1])
-      rot = 1/sqrt(2)*(si+sy)
-      psi0 = apply(rot,psi0)
-   end
+   # if isTrans
+   #    sy = 2*op("Sy",sysenv[1])
+   #    si = op("Id",sysenv[1])
+   #    rot = 1/sqrt(2)*(si+sy)
+   #    psi0 = apply(rot,psi0)
+   # end
    
    return (sysenv,psi0);
 end

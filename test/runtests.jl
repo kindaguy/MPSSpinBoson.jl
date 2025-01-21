@@ -6,3 +6,4 @@ using Test
     @test MPSSpinBoson.test_exsistence() == "MPSSpinBoson package does exist!"
     @test MPSSpinBoson.test_exsistence() != "Hello world!"
 end
+#"MPSSpinBoson package does exist!"
